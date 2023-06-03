@@ -1,11 +1,42 @@
-/** @format */
+const DB_NAME = "paymentRecord";
+const DB_VERSION = 1;
+const DB_STORE_NAME = "orderIds";
+
+function createDB() {
+  let request = indexedDB.open(DB_NAME, DB_VERSION);
+  console.log("Install indexDB");
+  request.onerror = function (error) {
+    console.log("Error in indexDB", error);
+  };
+  request.onupgradeneeded = function (event) {
+    let dbResult = event.target.result;
+    if (dbResult.objectStoreNames.contains(DB_STORE_NAME)) {
+      dbResult.deleteObjectStore(DB_STORE_NAME);
+    }
+    let store = dbResult.createObjectStore(DB_STORE_NAME, {
+      // keyPath: "id",
+      autoIncrement: true,
+    });
+    store.createIndex("id", "id", { unique: true });
+  };
+}
 
 self.addEventListener("install", () => {
+  createDB();
   console.log("Service worker installed");
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  let openDBRequest = indexedDB.open(DB_NAME);
+  openDBRequest.onsuccess = (event) => {
+    console.log("DB opened from service worker");
+    let db = event.target.result;
+    const transaction = db.transaction([DB_STORE_NAME], "readwrite");
+    const objectStore = transaction.objectStore(DB_STORE_NAME);
+    let request = objectStore.getAll();
+    console.log(request);
+  };
+
   console.log("Service worker activated", event);
 });
 
@@ -42,14 +73,13 @@ function dequeue() {
   }
 }
 
-function sendOrderId(url, orderId) {
-  console.log(orderId);
-  return fetch(url);
-}
+// function sendOrderId(url, orderId) {
+//   console.log(orderId);
+//   return fetch(url);
+// }
 
 self.addEventListener("message", (event) => {
   let { type, orderId } = event.data;
-  console.log(type);
   if (type === "FETCH_ORDER_ID") {
     enqueue(orderId);
     self.registration.sync.register(orderId);
@@ -57,22 +87,36 @@ self.addEventListener("message", (event) => {
   if (type === "DELETE_ORDER_ID") {
     dequeue();
   }
-  console.log(orderIdQueue);
 });
-let rightUrl = "https://jsonplaceholder.typicode.com/users";
-let errorUrl = "https://jsonplaceholder.typicode.com/users";
+
+// let rightUrl = "https://jsonplaceholder.typicode.com/users";
+// let errorUrl = "https://jsonplaceholder.typicode.com/users";
+
 self.addEventListener("sync", (event) => {
-  event.waitUntil(
-    sendOrderId(errorUrl, event.tag)
-      .then((res) => res.json())
-      .then((data) => console.log(data))
-      .catch((err) => {
-        console.log(err);
-        setTimeout(() => {
-          sendOrderId(rightUrl, event.tag)
-            .then((res) => res.json())
-            .then((data) => console.log(data));
-        }, 2000);
-      })
-  );
+  console.log(event.target);
+  let openDBRequest = indexedDB.open(DB_NAME);
+
+  openDBRequest.onsuccess = (event) => {
+    console.log("DB opened from service worker");
+
+    let db = event.target.result;
+    const transaction = db.transaction([DB_STORE_NAME], "readwrite");
+
+    const objectStore = transaction.objectStore(DB_STORE_NAME);
+    objectStore.add(orderIdQueue);
+  };
+  // event.waitUntil(
+
+  //   // sendOrderId(errorUrl, event.tag)
+  //   //   .then((res) => res.json())
+  //   //   .then((data) => console.log(data))
+  //   //   .catch((err) => {
+  //   //     console.log(err);
+  //   //     setTimeout(() => {
+  //   //       sendOrderId(rightUrl, event.tag)
+  //   //         .then((res) => res.json())
+  //   //         .then((data) => console.log(data));
+  //   //     }, 2000);
+  //   //   })
+  // );
 });
