@@ -73,10 +73,6 @@ function dequeue() {
   }
 }
 
-// function sendOrderId(url, orderId) {
-//   console.log(orderId);
-//   return fetch(url);
-// }
 
 self.addEventListener("message", (event) => {
   let { type, orderId } = event.data;
@@ -89,8 +85,6 @@ self.addEventListener("message", (event) => {
   }
 });
 
-// let rightUrl = "https://jsonplaceholder.typicode.com/users";
-// let errorUrl = "https://jsonplaceholder.typicode.com/users";
 
 self.addEventListener("sync", (event) => {
   console.log(event.target);
@@ -105,18 +99,4 @@ self.addEventListener("sync", (event) => {
     const objectStore = transaction.objectStore(DB_STORE_NAME);
     objectStore.add(orderIdQueue);
   };
-  // event.waitUntil(
-
-  //   // sendOrderId(errorUrl, event.tag)
-  //   //   .then((res) => res.json())
-  //   //   .then((data) => console.log(data))
-  //   //   .catch((err) => {
-  //   //     console.log(err);
-  //   //     setTimeout(() => {
-  //   //       sendOrderId(rightUrl, event.tag)
-  //   //         .then((res) => res.json())
-  //   //         .then((data) => console.log(data));
-  //   //     }, 2000);
-  //   //   })
-  // );
 });
